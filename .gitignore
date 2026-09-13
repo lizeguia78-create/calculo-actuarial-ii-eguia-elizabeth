@@ -1,0 +1,11 @@
+.venv/
+_pycache_/
+*.pyc
+.ipynb_checkpoints/
+.env
+.DS_Store
+
+# Datos grandes descargables nuevamente
+data/raw/*.csv
+data/raw/*.CSV
+data/raw/*.xlsx
