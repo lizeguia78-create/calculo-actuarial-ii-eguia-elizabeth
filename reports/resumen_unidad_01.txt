@@ -483,32 +483,35 @@ de la unidad.
                                       CONCLUSIONES
 ========================================================================================
 
-Borrador para adaptar.
+De esta unidad, lo que más nos aportó fue trabajar con Git y GitHub. Al principio lo
+vimos como un requisito técnico ajeno a la materia, pero entendimos que forma parte del
+cálculo actuarial: un resultado que nadie más puede reconstruir no es confiable.
+Registrar cada cambio con un commit, tener una copia remota del proyecto y ver que
+GitHub Actions ejecuta las pruebas con cada cambio nos dio una forma ordenada de
+trabajar que antes no teníamos.
 
-La Unidad I muestra que el trabajo actuarial comienza antes de cualquier fórmula:
-consiste en traducir una promesa de pago incierta a variables aleatorias y en declarar
-con claridad las hipótesis que sostienen el modelo. Conceptos como la probabilidad
-condicional, la esperanza y la varianza dejan de ser abstractos cuando se interpretan
-como costo esperado de una póliza, composición de una cartera o volatilidad del costo
-total.
+Lo que más trabajo nos costó fue crear la estructura del repositorio que piden las
+notas. Cada carpeta tiene una razón de ser —separar datos crudos, datos procesados,
+funciones, pruebas y reportes—, pero armarla nos llevó a errores pequeños con
+consecuencias reales: nombramos el archivo _init_.py, con un solo guion bajo en lugar de
+dos, y el flujo de pruebas quedó vacío al inicio, de modo que GitHub no verificaba nada.
+Corregirlos nos enseñó que los nombres y la configuración también son parte del trabajo.
 
-Uno de los aprendizajes más importantes es que cada distribución tiene supuestos que
-deben revisarse. La binomial supone probabilidades iguales e independencia; la Poisson,
-que la media y la varianza coinciden, y la exponencial, que la fuerza de mortalidad es
-constante. Elegir un modelo por costumbre puede llevar a subestimar el riesgo,
-especialmente cuando existen choques comunes, como lo ilustra el aumento de defunciones
-en México durante 2020 y 2021.
+También encontramos una conexión clara con Probabilidad Avanzada, donde trabajamos con
+dos variables aleatorias y usamos el Teorema Central del Límite y las distribuciones
+Bernoulli, chi cuadrada y t de Student. Aquí esas herramientas adquieren un sentido
+actuarial: la covarianza y la esperanza condicional describen la dependencia entre dos
+riesgos, la Bernoulli modela si una póliza reclama o no, y el Teorema Central del Límite
+justifica aproximar con una normal la pérdida total de una cartera grande. La chi
+cuadrada y la t de Student nos servirán para algo que las notas piden constantemente:
+comprobar si un modelo, como la Poisson, realmente se ajusta a los datos, y estimar sus
+parámetros con un margen de error, en lugar de elegir una distribución por costumbre.
 
-También resulta valiosa la distinción entre conteo, tasa bruta y probabilidad
-individual. Una cifra oficial puede ser correcta y, aun así, usarse de forma equivocada
-si no se entiende qué pregunta responde; por ello, leer el diccionario de datos y
-documentar la fuente es parte del análisis y no un trámite.
-
-Por último, el entorno reproducible —Git, GitHub, Python, entornos virtuales y pruebas
-automáticas— convierte cada cálculo en algo verificable por otra persona. Consideramos
-que esta combinación de rigor probabilístico y trabajo reproducible será la base para
-los temas de supervivencia, seguros y anualidades que se estudiarán en las siguientes
-unidades.
+En conjunto, nos quedamos con la idea de que un actuario no solo calcula: declara sus
+supuestos, distingue un conteo de una tasa y de una probabilidad, y deja su trabajo
+listo para que otra persona lo verifique. Creemos que esta combinación de probabilidad y
+trabajo reproducible será la base para los temas de supervivencia, seguros y anualidades
+de las siguientes unidades.
 
 
 
