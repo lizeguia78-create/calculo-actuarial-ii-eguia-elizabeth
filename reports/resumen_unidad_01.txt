@@ -1,0 +1,565 @@
+========================================================================================
+                       UNIVERSIDAD AUTÓNOMA DEL ESTADO DE MÉXICO
+
+                                  Cálculo Actuarial II
+
+                                 Resumen de la Unidad I
+           Preliminares probabilísticos y entorno computacional reproducible
+
+                                      Integrantes:
+                                Elizabeth Eguía Estrada
+                               Asael Isaac Alcalá Galindo
+
+                            Fecha de entrega: [por definir]
+========================================================================================
+
+Nota sobre las fórmulas: se escriben con los símbolos del editor de ecuaciones de Word
+en forma lineal: a/b es una fracción, x² o x^(n-k) una potencia, B_j o qₓ un subíndice,
+√ una raíz, ∑ una suma, ∫ una integral y (n¦k) el coeficiente binomial.
+
+========================================================================================
+                                         ÍNDICE
+========================================================================================
+Introducción
+Desarrollo
+    1. El problema actuarial: incertidumbre, tiempo y dinero
+    2. Entorno de trabajo reproducible
+    3. Python mínimo para modelar riesgo
+    4. Lenguaje de probabilidad
+    5. Variables aleatorias
+    6. Esperanza, varianza y dependencia
+    7. Cuantiles, deducibles y límites
+    8. Distribuciones discretas fundamentales
+    9. Distribuciones continuas fundamentales
+    10. De riesgos individuales a riesgo agregado
+    11. Ley de los grandes números y simulación
+    12. Datos reales de México
+    13. Ejemplos resueltos
+    14. Errores conceptuales que deben evitarse
+    15. Práctica guiada, ejercicios y lista de verificación
+Conclusiones
+Bibliohemerografía
+Bases de datos
+
+
+========================================================================================
+                                      INTRODUCCIÓN
+========================================================================================
+
+La Unidad I del curso de Cálculo Actuarial II, titulada Preliminares probabilísticos y
+entorno computacional reproducible, tiene un doble propósito: construir el lenguaje de
+probabilidad que se usará durante todo el curso y, al mismo tiempo, establecer una forma
+de trabajo en la que cada cálculo pueda entenderse, ejecutarse, verificarse y
+reconstruirse a partir de su código, sus datos y sus hipótesis (Cálculo Actuarial II,
+2026).
+
+La idea central de la unidad es que el cálculo actuarial no consiste en sustituir
+números en una fórmula. El actuario debe traducir una obligación incierta —por ejemplo,
+«la póliza paga si ocurre un fallecimiento»— a variables aleatorias, distribuciones,
+esperanzas y medidas de variabilidad; después, debe reproducir el cálculo en Python y
+documentarlo en Git. Esta forma de razonar es la que sostiene los modelos de seguros de
+vida y de daños que se estudian en la literatura actuarial (Dickson, Hardy y Waters,
+2020; Klugman, Panjer y Willmot, 2019).
+
+El presente trabajo resume las dieciséis secciones de las notas y su lista de
+verificación final. Primero se describe el problema que resuelve un actuario y el
+entorno de trabajo; después, el lenguaje de probabilidad, las variables aleatorias y sus
+momentos; enseguida, las distribuciones más usadas, el riesgo agregado y la ley de los
+grandes números, y finalmente la lectura de datos de mortalidad del INEGI, los ejemplos
+resueltos, los errores que deben evitarse y la práctica guiada. Cada concepto se
+acompaña de su interpretación actuarial y, cuando corresponde, de un gráfico.
+
+
+
+========================================================================================
+                                       DESARROLLO
+========================================================================================
+
+
+1. El problema actuarial: incertidumbre, tiempo y dinero
+--------------------------------------------------------
+
+Toda obligación actuarial combina al menos tres ingredientes: un evento incierto, un
+monto que depende de ese evento y un momento de pago que también puede ser incierto. Un
+seguro de vida paga un beneficio B si la persona fallece; una póliza de automóvil paga
+una pérdida aleatoria X si hay un siniestro; una cartera produce un número aleatorio N
+de reclamaciones. La expresión más importante del curso resume esta idea:
+
+        valor actuarial = 𝔼[valor presente aleatorio]
+
+El primer ejemplo es un indicador I que vale 1 si ocurre el siniestro y 0 si no ocurre.
+Si la póliza paga una cantidad fija B, el costo es X = BI y, si la probabilidad del
+siniestro es q, su valor esperado es 𝔼[X] = Bq. Por ejemplo, con un beneficio de
+$500 000 y q = 0.004, el costo esperado es de $2 000. Este número no es lo que recibirá
+cada asegurado ni la prima comercial —a la prima se le agregan gastos, margen de riesgo,
+comisiones e impuestos—; es el costo promedio por póliza que produce el modelo.
+
+
+2. Entorno de trabajo reproducible
+----------------------------------
+
+Las notas insisten en que el entorno computacional forma parte del cálculo actuarial,
+porque un resultado que nadie puede reconstruir no es auditable. Debe conservarse la
+cadena fuente de datos → transformación → modelo → resultado → reporte. Git registra la
+historia del proyecto, GitHub guarda el repositorio remoto y automatiza tareas, Python
+ejecuta los cálculos y Visual Studio Code es el espacio de trabajo (Microsoft, s.f.).
+
+Los pasos básicos son crear una cuenta de GitHub con autenticación de dos factores
+(GitHub, s.f.-a); instalar Git, Python y VS Code; crear y clonar el repositorio del
+curso (GitHub, s.f.-b; GitHub, s.f.-c), y crear un entorno virtual .venv que aísla las
+bibliotecas del proyecto, cuyas versiones se registran en requirements.txt (Python
+Software Foundation, s.f.). El repositorio separa datos crudos (data/raw), datos
+procesados, notebooks, funciones (src), pruebas (tests), figuras y reportes. La regla de
+oro de datos es que el archivo crudo nunca se edita a mano: toda corrección se hace con
+código. Tampoco se suben contraseñas, tokens ni datos personales.
+
+El trabajo diario usa cinco comandos de Git: status (qué cambió), add (qué se guardará),
+commit (guardar una «fotografía» con un mensaje), pull (traer cambios) y push (enviarlos
+a GitHub) (Chacon y Straub, 2014). Además, las pruebas automáticas con pytest,
+ejecutadas por GitHub Actions en cada cambio, verifican que el código siga calculando lo
+correcto.
+
+
+3. Python mínimo para modelar riesgo
+------------------------------------
+
+La sección 3 presenta las herramientas indispensables de Python. Las funciones
+convierten una fórmula repetida en un cálculo reutilizable y comprobable; NumPy opera
+con vectores completos; Pandas organiza tablas en las que cada columna debe tener
+interpretación, unidad y procedencia; Matplotlib produce gráficas que sirven de
+diagnóstico, y SciPy evalúa distribuciones (pmf para la función de masa y cdf para la
+acumulada). Una semilla, como default_rng(31415), no hace la simulación «más aleatoria»,
+sino reproducible.
+
+
+4. Lenguaje de probabilidad
+---------------------------
+
+El espacio muestral Ω es el conjunto de todos los resultados posibles del experimento.
+Para un indicador de siniestro, Ω = {0,1}; para un número de reclamaciones, Ω =
+{0,1,2,…}, y para un tiempo de espera, Ω = [0,∞). Un evento es un conjunto de
+resultados; por ejemplo, A = {N ≥ 3} significa «se observan por lo menos tres
+reclamaciones». En espacios continuos no a todo subconjunto se le puede asignar una
+probabilidad coherente, por lo que se trabaja con una familia de eventos llamada
+σ-álgebra ℱ.
+
+Un espacio de probabilidad es la terna (Ω,ℱ,ℙ), donde la probabilidad ℙ cumple tres
+axiomas: la probabilidad de Ω es 1, ninguna probabilidad es negativa y la probabilidad
+de una unión de eventos disjuntos es la suma de sus probabilidades. De los axiomas se
+obtienen dos reglas muy usadas:
+
+        ℙ(Aᶜ) = 1 - ℙ(A),
+        ℙ(A ∪ B) = ℙ(A) + ℙ(B) - ℙ(A ∩ B)
+
+El Gráfico 1 muestra dos eventos dentro del espacio muestral. La intersección A ∩ B
+representa que ocurren ambos; por eso se resta una vez en la fórmula de la unión, para
+no contarla dos veces. Por ejemplo, si una póliza tiene probabilidad 0.08 de reclamar
+por la cobertura A, 0.05 por la cobertura B y 0.015 por ambas, la probabilidad de tener
+al menos una reclamación es 0.08 + 0.05 - 0.015 = 0.115, es decir, 11.5 %.
+
+[Gráfico 1. Espacio muestral Ω de una póliza: eventos de reclamación A y B y su
+ intersección (diagrama de Venn)]
+    (Imagen en la versión Word; original en docs/figuras/fig01_eventos.png)
+    Fuente: elaboración propia con base en Cálculo Actuarial II (2026).
+
+La probabilidad condicional mide la probabilidad de A cuando ya se sabe que ocurrió B;
+condicionar significa cambiar el universo de referencia:
+
+        ℙ(A ∣ B) = ℙ(A ∩ B)/ℙ(B),
+        ℙ(B) > 0
+
+En actuaría casi todo es condicional: la probabilidad de sobrevivir t años, ₜpₓ, se
+refiere a una persona que ya alcanzó la edad x. La ley de probabilidad total calcula una
+probabilidad global a partir de las condicionales de cada grupo, y el teorema de Bayes
+la invierte para saber de qué grupo proviene lo observado:
+
+        ℙ(A) = ∑ⱼ₌₁ᵏ ℙ(A ∣ Bⱼ) ℙ(Bⱼ),
+        ℙ(Bⱼ ∣ A) = (ℙ(A ∣ Bⱼ) ℙ(Bⱼ))/ℙ(A)
+
+En el ejemplo de las notas, 60 % de la cartera está en el segmento A (probabilidad de
+reclamación 0.02) y 40 % en el B (0.06). La probabilidad total es 0.02(0.60) +
+0.06(0.40) = 0.036 y, por Bayes, la probabilidad de que una reclamación venga de B es
+0.024/0.036 = 2/3: aunque B es solo 40 % de la cartera, genera dos terceras partes de
+las reclamaciones.
+
+Dos eventos son independientes si ℙ(A ∩ B) = ℙ(A) ℙ(B), es decir, si saber que ocurrió
+uno no cambia la probabilidad del otro. Independencia no es lo mismo que exclusión: dos
+eventos disjuntos con probabilidad positiva nunca son independientes. Suponer
+independencia entre pólizas puede ser razonable para riesgos individuales, pero falla
+ante choques comunes como epidemias o catástrofes; por eso el supuesto debe declararse
+explícitamente.
+
+
+5. Variables aleatorias
+-----------------------
+
+Una variable aleatoria es una regla que asigna un número a cada resultado del
+experimento, X:Ω → ℝ. La regla es fija; lo incierto es qué resultado ocurrirá. Ejemplos
+actuariales son el número de reclamaciones N, el monto de una reclamación X, el tiempo
+hasta un fallecimiento T y la pérdida total de una cartera S.
+
+Una variable discreta toma valores que se pueden contar y se describe con su función de
+masa p_X(x) = ℙ(X = x), cuyos valores son no negativos y suman 1. Una variable continua
+se describe con una densidad f_X(x) y las probabilidades se obtienen como áreas bajo la
+curva:
+
+        ℙ(a < X ≤ b) = ∫ₐᵇ f_X(x) dx
+
+En una variable continua la probabilidad de un valor exacto es cero: la densidad no es
+una probabilidad puntual. Ambos tipos se resumen con la función de distribución
+acumulada F_X(x) = ℙ(X ≤ x), que crece de 0 a 1. Por último, el indicador de un evento
+vale 1 si ocurre y 0 si no, y su esperanza es la probabilidad del evento; por eso el
+número esperado de pólizas con siniestro es la suma de sus probabilidades, aun sin
+independencia.
+
+
+6. Esperanza, varianza y dependencia
+------------------------------------
+
+La esperanza es el promedio ponderado de los valores posibles: 𝔼[X] = ∑ ₓ x p_X(x) en el
+caso discreto, o la integral de x f_X(x) en el continuo. Es lineal: 𝔼[aX + b] = a 𝔼[X] +
+b, y la esperanza de una suma es la suma de las esperanzas, sin necesidad de
+independencia. Por eso el costo esperado de una cartera es la suma de Bⱼqⱼ de cada
+póliza.
+
+La varianza mide qué tan dispersos están los valores alrededor de la media, y la
+desviación estándar es su raíz cuadrada:
+
+        Var(X) = 𝔼[(X - 𝔼[X])²] = 𝔼[X²] - 𝔼[X]²,
+        σ_X = √(Var(X))
+
+La covarianza mide si dos variables tienden a moverse juntas; aparece en la varianza de
+una suma y explica por qué ignorar la dependencia entre pólizas subestima el riesgo
+total:
+
+        Var(X + Y) = Var(X) + Var(Y) + 2Cov(X,Y)
+
+Finalmente, la esperanza condicional 𝔼[X ∣ Y] resume el valor esperado de X con la
+información de Y y cumple la ley iterada 𝔼[X] = 𝔼[𝔼[X ∣ Y]]; la varianza se descompone
+en variabilidad dentro de los grupos más variabilidad entre grupos, idea que reaparecerá
+en credibilidad.
+
+
+7. Cuantiles, deducibles y límites
+----------------------------------
+
+El cuantil de nivel α es el menor valor que deja al menos una proporción α de la
+distribución a su izquierda; el percentil 95, por ejemplo, deja 95 %. Los cuantiles
+importan porque la media no describe las pérdidas extremas. Los contratos también
+transforman la pérdida: con un deducible d el asegurador paga solo el exceso, y con un
+límite u paga como máximo esa cantidad:
+
+        Y = (X - d)₊ = max{X - d, 0},
+        Y = min{X, u}
+
+El pago esperado con deducible se obtiene integrando la probabilidad de supervivencia de
+la pérdida desde d; por eso la función de pago debe escribirse matemáticamente antes de
+programarla.
+
+
+8. Distribuciones discretas fundamentales
+-----------------------------------------
+
+La Bernoulli describe un solo experimento con dos resultados: ℙ(X = 1) = p y ℙ(X = 0) =
+1 - p, con media p y varianza p(1 - p). Modela situaciones como fallece o no fallece,
+reclama o no reclama, y póliza activa o cancelada. El Gráfico 2 muestra el caso p =
+0.20: la barra del 0 (no ocurre) tiene altura 0.8 y la del 1 (ocurre), 0.2.
+
+[Gráfico 2. Póliza individual: probabilidad de que ocurra o no una reclamación en un
+ año, modelo Bernoulli con p = 0.20]
+    (Imagen en la versión Word; original en docs/figuras/fig02_bernoulli.png)
+    Fuente: elaboración propia con base en Cálculo Actuarial II (2026).
+
+La binomial cuenta cuántos de n ensayos Bernoulli independientes, todos con la misma
+probabilidad p, resultan en éxito:
+
+        ℙ(N = k) = (n¦k)pᵏ(1 - p)ⁿ⁻ᵏ,   k = 0,1,…,n,
+        𝔼[N] = np,   Var(N) = np(1 - p)
+
+El coeficiente binomial cuenta de cuántas formas pueden elegirse los k éxitos. En el
+ejemplo de las notas hay 50 vidas independientes con probabilidad anual de muerte 0.04;
+el número esperado de fallecimientos es 2, la varianza es 1.92 y la probabilidad de
+exactamente dos muertes es aproximadamente 0.2762, que es la barra más alta del Gráfico
+3. Si las probabilidades difieren entre personas, la suma ya no es binomial: la binomial
+es un punto de partida, no la descripción automática de cualquier cartera.
+
+[Gráfico 3. Cartera hipotética de 50 vidas: probabilidad del número de fallecimientos en
+ un año, modelo binomial (n = 50, p = 0.04)]
+    (Imagen en la versión Word; original en docs/figuras/fig03_binomial.png)
+    Fuente: elaboración propia con base en Cálculo Actuarial II (2026).
+
+La Poisson es el modelo clásico para contar reclamaciones en un periodo cuando los
+eventos son relativamente raros y la tasa es estable; también es el límite de la
+binomial cuando n es grande y p pequeño:
+
+        ℙ(N = k) = e^(-λ)λᵏ/k!,   k = 0,1,2,…,
+        𝔼[N] = Var(N) = λ
+
+[Gráfico 4. Cartera hipotética: probabilidad del número de reclamaciones en un periodo,
+ modelo Poisson con frecuencia esperada λ = 2]
+    (Imagen en la versión Word; original en docs/figuras/fig04_poisson.png)
+    Fuente: elaboración propia con base en Cálculo Actuarial II (2026).
+
+El Gráfico 4 muestra una Poisson con λ = 2: los valores 1 y 2 son los más probables y
+los conteos altos son cada vez más raros. La Poisson impone que la media y la varianza
+sean iguales (equidispersión). Si en los datos la varianza es mucho mayor que la media
+hay sobredispersión, y conviene otro modelo, como la binomial negativa. Nunca se elige
+Poisson solo porque la variable sea un conteo.
+
+La geométrica cuenta los ensayos hasta el primer éxito, ℙ(N = k) = (1 - p)ᵏ⁻¹p, con
+media 1/p. Tiene falta de memoria: haber esperado m ensayos sin éxito no cambia la
+probabilidad de esperar n más, un supuesto que debe justificarse en cada aplicación.
+
+
+9. Distribuciones continuas fundamentales
+-----------------------------------------
+
+La exponencial modela tiempos de espera. Su densidad, su probabilidad de supervivencia y
+sus momentos son:
+
+        f_T(t) = λ e^(-λ t),   t ≥ 0,
+        ℙ(T > t) = e^(-λ t),
+        𝔼[T] = 1/λ,   Var(T) = 1/λ²
+
+[Gráfico 5. Tiempo de espera hasta un evento: densidad exponencial con intensidad λ =
+ 0.20 por año]
+    (Imagen en la versión Word; original en docs/figuras/fig05_exponencial.png)
+    Fuente: elaboración propia con base en Cálculo Actuarial II (2026).
+
+En el Gráfico 5 la densidad es máxima al inicio y decrece sin llegar a cero. La
+exponencial carece de memoria y su fuerza de mortalidad es constante, μ(t) = λ:
+demasiado restrictivo para la mortalidad humana, que aumenta con la edad, pero
+indispensable para entender intensidades.
+
+La gamma, con media αθ y varianza αθ², es positiva y sesgada a la derecha, útil para
+montos de reclamación; con α = 1 se reduce a la exponencial. La normal N(μ,σ²) es
+simétrica y admite valores negativos, por lo que no siempre sirve para costos
+individuales, aunque aparece al aproximar sumas con el Teorema Central del Límite. La
+uniforme U(0,1) es la base de la simulación, pues muchas distribuciones se generan con X
+= F⁻¹(U). Una distribución no se elige por costumbre, sino por su soporte, su cola y su
+ajuste a los datos.
+
+
+10. De riesgos individuales a riesgo agregado
+---------------------------------------------
+
+La pérdida total de una cartera es la suma S = X₁+⋯+Xₙ. Si las pérdidas son
+independientes e idénticamente distribuidas, con media μ y varianza σ², entonces 𝔼[S] =
+nμ y Var(S) = nσ². El coeficiente de variación, que mide la dispersión relativa,
+disminuye con el tamaño de la cartera:
+
+        (√n σ)/(nμ) = 1/(√n)·σ/μ
+
+Este es el efecto de diversificación bajo independencia. En seguros de daños es más
+natural el modelo colectivo, S = ∑ⱼ₌₁^N Xⱼ, que une la frecuencia N (cuántas
+reclamaciones hay) con la severidad Xⱼ (de qué tamaño son). Si N es Poisson con
+parámetro λ e independiente de los montos, la esperanza condicional da:
+
+        𝔼[S] = λμ,
+        Var(S) = λ(σ² + μ²)
+
+
+11. Ley de los grandes números y simulación
+-------------------------------------------
+
+La ley de los grandes números afirma que, si las observaciones son independientes y
+tienen la misma media finita μ, su promedio se acerca a μ cuando crece el número de
+observaciones:
+
+        X̄ₙ = 1/n∑ⱼ₌₁ⁿ Xⱼ ⟶ μ
+
+[Gráfico 6. Frecuencia observada de reclamaciones en 10 000 pólizas simuladas con p =
+ 0.08 (semilla 31415, eje horizontal logarítmico)]
+    (Imagen en la versión Word; original en docs/figuras/fig06_ley_grandes_numeros.png)
+    Fuente: elaboración propia, simulación en Python con base en Cálculo Actuarial II
+    (2026).
+
+En el Gráfico 6 la frecuencia observada oscila mucho al principio y se estabiliza cerca
+de 0.08 conforme se acumulan observaciones, aunque no de forma monótona. Por eso una
+cartera grande ofrece más estabilidad relativa; sin embargo, no elimina el riesgo
+sistemático: si muchas pólizas responden al mismo choque, aumentar su número no
+diversifica.
+
+
+12. Datos reales de México
+--------------------------
+
+El INEGI publica las Estadísticas de Defunciones Registradas (EDR) (INEGI, s.f.-a). En
+2024 se registraron 819 672 defunciones, con una tasa bruta nacional de 630 por cada 100
+mil habitantes; el archivo de microdatos DEFUN24 tiene 74 variables (INEGI, 2025; INEGI,
+s.f.-b). El Cuadro 1 resume la serie 2015–2024.
+
+Cuadro 1. México: defunciones registradas y tasa bruta por cada 100 mil habitantes,
+2015–2024
+    Año      Defunciones registradas     Tasa bruta por 100 mil hab.
+    ----------------------------------------------------------------
+    2015                     655 688                             536
+    2016                     685 766                             555
+    2017                     703 047                             563
+    2018                     722 611                             574
+    2019                     747 784                             588
+    2020                   1 086 743                             860
+    2021                   1 122 249                             879
+    2022                     847 716                             659
+    2023                     799 869                             619
+    2024                     819 672                             630
+    Fuente: elaboración propia con datos de INEGI (2025), Estadísticas de Defunciones
+    Registradas 2024.
+
+[Gráfico 7. México: defunciones registradas por año, 2015–2024]
+    (Imagen en la versión Word; original en docs/figuras/fig07_defunciones_inegi.png)
+    Fuente: elaboración propia con datos de INEGI (2025), Estadísticas de Defunciones
+    Registradas 2024.
+
+El Gráfico 7 muestra un crecimiento gradual hasta 2019, un salto en 2020 y 2021 —más de
+un millón de defunciones— y un regreso parcial después; ese salto obliga a pensar en
+choques comunes.
+
+[Gráfico 8. México: tasa bruta de defunciones registradas por cada 100 mil habitantes,
+ 2015–2024]
+    (Imagen en la versión Word; original en docs/figuras/fig08_tasa_bruta_inegi.png)
+    Fuente: elaboración propia con datos de INEGI (2025), Estadísticas de Defunciones
+    Registradas 2024.
+
+El punto central es distinguir tres objetos. El conteo (819 672) es un número absoluto.
+La tasa bruta (630 por 100 mil, es decir, 0.0063) mezcla edades, sexos y estructuras de
+población, y sirve para comparar años, como en el Gráfico 8. La probabilidad individual
+qₓ es condicional a una edad y a una población definida, por lo que no se obtiene de la
+tasa bruta: aplicar 630 por 100 mil a 10 000 personas da 63 muertes, un orden de
+magnitud y no una base para tarificar.
+
+Además, la tasa por entidad puede engañar: en 2024 la Ciudad de México tuvo la tasa más
+alta (863 por 100 mil) en parte porque sus hospitales atienden a personas de otras
+entidades (INEGI, 2025). Y antes de usar microdatos hay que leer el diccionario de
+datos: la variable EDAD, por ejemplo, puede estar en horas, días, meses o años (INEGI,
+s.f.-b).
+
+
+13. Ejemplos resueltos
+----------------------
+
+(1) Con probabilidad anual de reclamación 0.03 e independencia entre años, la
+probabilidad de al menos una reclamación en cinco años se obtiene por complemento: 1 -
+0.97⁵ ≈ 0.1413. (2) En 100 pólizas con p = 0.02, la probabilidad de exactamente tres
+reclamaciones es binomial, (100¦3)(0.02)³(0.98)⁹⁷. (3) Si las reclamaciones mensuales
+son Poisson con media 4.5, la probabilidad de más de siete es 1 - ℙ(N ≤ 7), calculada
+con la función de distribución acumulada. (4) Si el tiempo de espera es exponencial con
+λ = 0.25 por año, ℙ(T > 3) = e^(-0.75) ≈ 0.4724 y la media es de 4 años.
+
+(5) Para una pérdida exponencial con deducible d, el pago esperado es e^(-λ d)/λ; con
+media de 10 000 y deducible de 5 000 resulta 10 000 e^(-0.5) ≈ 6 065.31. (6) En un
+modelo colectivo con N Poisson de media 120 y montos con media 8 000 y desviación
+estándar 12 000, 𝔼[S] = 960 000 y Var(S) = 120(12 000² + 8 000²), con desviación
+estándar de aproximadamente 157 987: el valor esperado y la dispersión responden
+preguntas distintas.
+
+
+14. Errores conceptuales que deben evitarse
+-------------------------------------------
+
+Las notas enumeran diez errores frecuentes: confundir la densidad con una probabilidad
+puntual; confundir una tasa agregada con una probabilidad individual qₓ; suponer
+independencia por comodidad; elegir Poisson solo porque la variable es un conteo;
+interpretar la esperanza como «lo que va a ocurrir»; redondear demasiado pronto; editar
+a mano los datos crudos; subir información sensible a GitHub; guardar solo el notebook,
+sin dependencias ni datos documentados, y concluir «Python dio este número» sin una
+explicación matemática y actuarial.
+
+
+15. Práctica guiada, ejercicios y lista de verificación
+-------------------------------------------------------
+
+La práctica guiada tiene cuatro partes: (A) preparar el repositorio, el entorno .venv,
+al menos cuatro commits y las pruebas en GitHub Actions; (B) crear un notebook con
+ejemplos Bernoulli, binomial, Poisson, exponencial y de ley de los grandes números; (C)
+reproducir las gráficas de los datos EDR del INEGI y explicar por qué la tasa bruta no
+es un qₓ, y (D) comprobar que otra persona pueda reproducir todo desde cero. La sección
+16 propone 31 ejercicios y la 17 cierra con una lista de verificación de los objetivos
+de la unidad.
+
+
+
+========================================================================================
+                                      CONCLUSIONES
+========================================================================================
+
+Borrador para adaptar.
+
+La Unidad I muestra que el trabajo actuarial comienza antes de cualquier fórmula:
+consiste en traducir una promesa de pago incierta a variables aleatorias y en declarar
+con claridad las hipótesis que sostienen el modelo. Conceptos como la probabilidad
+condicional, la esperanza y la varianza dejan de ser abstractos cuando se interpretan
+como costo esperado de una póliza, composición de una cartera o volatilidad del costo
+total.
+
+Uno de los aprendizajes más importantes es que cada distribución tiene supuestos que
+deben revisarse. La binomial supone probabilidades iguales e independencia; la Poisson,
+que la media y la varianza coinciden, y la exponencial, que la fuerza de mortalidad es
+constante. Elegir un modelo por costumbre puede llevar a subestimar el riesgo,
+especialmente cuando existen choques comunes, como lo ilustra el aumento de defunciones
+en México durante 2020 y 2021.
+
+También resulta valiosa la distinción entre conteo, tasa bruta y probabilidad
+individual. Una cifra oficial puede ser correcta y, aun así, usarse de forma equivocada
+si no se entiende qué pregunta responde; por ello, leer el diccionario de datos y
+documentar la fuente es parte del análisis y no un trámite.
+
+Por último, el entorno reproducible —Git, GitHub, Python, entornos virtuales y pruebas
+automáticas— convierte cada cálculo en algo verificable por otra persona. Consideramos
+que esta combinación de rigor probabilístico y trabajo reproducible será la base para
+los temas de supervivencia, seguros y anualidades que se estudiarán en las siguientes
+unidades.
+
+
+
+========================================================================================
+                                   BIBLIOHEMEROGRAFÍA
+========================================================================================
+
+Cálculo Actuarial II. Unidad I: preliminares probabilísticos y entorno computacional
+    reproducible (2026) Notas de curso con Python, GitHub y datos públicos de México.
+    México.
+
+Chacon, S. y Straub, B. (2014) Pro Git. 2a ed. Berkeley: Apress. Disponible en:
+    https://git-scm.com/book/en/v2/Getting-Started-Installing-Git
+
+Dickson, D.C.M., Hardy, M.R. y Waters, H.R. (2020) Actuarial Mathematics for Life
+    Contingent Risks. 3a ed. Cambridge: Cambridge University Press.
+
+GitHub (s.f.-a) Creating an account on GitHub. Disponible en: https://docs.github.com/en
+    /account-and-profile/how-tos/account-management/creating-an-account-on-github
+
+GitHub (s.f.-b) Crear un repositorio nuevo. Disponible en: https://docs.github.com/es/re
+    positories/creating-and-managing-repositories/creating-a-new-repository
+
+GitHub (s.f.-c) Cloning a repository. Disponible en: https://docs.github.com/en/reposito
+    ries/creating-and-managing-repositories/cloning-a-repository
+
+INEGI, Instituto Nacional de Estadística y Geografía (2025) Estadísticas de Defunciones
+    Registradas (EDR) 2024. Reporte de Resultados 44/25, 10 de noviembre. Disponible en:
+    https://www.inegi.org.mx/contenidos/saladeprensa/boletines/2025/edr/EDR2024-def_RR.p
+    df
+
+Klugman, S.A., Panjer, H.H. y Willmot, G.E. (2019) Loss Models: From Data to Decisions.
+    5a ed. Hoboken: Wiley.
+
+Microsoft (s.f.) Getting Started with Python in VS Code. Disponible en:
+    https://code.visualstudio.com/docs/python/python-tutorial
+
+Python Software Foundation (s.f.) Entornos virtuales y paquetes. Disponible en:
+    https://docs.python.org/es/3/tutorial/venv.html
+
+
+
+========================================================================================
+                                     BASES DE DATOS
+========================================================================================
+
+INEGI, Instituto Nacional de Estadística y Geografía (s.f.-a) Estadísticas de
+    Defunciones Registradas (EDR) [Programa de información]. Disponible en:
+    https://www.inegi.org.mx/programas/edr/
+
+INEGI, Instituto Nacional de Estadística y Geografía (s.f.-b) Red Nacional de Metadatos:
+    Estadísticas de Defunciones Registradas 2024, archivo DEFUN24 [Diccionario de
+    datos]. Disponible en:
+    https://www.inegi.org.mx/rnm/index.php/catalog/1140/data-dictionary/F6
