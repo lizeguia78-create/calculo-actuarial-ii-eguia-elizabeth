@@ -10,7 +10,7 @@
                                 Elizabeth Eguía Estrada
                                Asael Isaac Alcalá Galindo
 
-                            Fecha de entrega: [por definir]
+                       Fecha de entrega: 28 de septiembre de 2026
 ========================================================================================
 
 Nota sobre las fórmulas: se escriben con los símbolos del editor de ecuaciones de Word
